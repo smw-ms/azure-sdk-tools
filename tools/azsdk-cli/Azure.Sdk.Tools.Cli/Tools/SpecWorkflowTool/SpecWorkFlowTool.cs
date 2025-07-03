@@ -55,6 +55,97 @@ namespace Azure.Sdk.Tools.Cli.Tools
         private readonly Option<int> releasePlanIdOpt = new(["--release-plan"], "SDK release plan id") { IsRequired = false };
         private readonly Option<int> workItemOptionalIdOpt = new(["--workitem-id"], "Release plan work item id") { IsRequired = false };
 
+        private async Task<(GenericResponse response, ReleasePlan? releasePlan, SDKInfo? sdkInfo, string packageName)> ValidateReleasePlanAndGetSDKInfoAsync(int workItemId, string language)
+        {
+            var response = new GenericResponse { Status = "Failed" };
+
+            if (workItemId == 0)
+            {
+                response.Details.Add("Work item ID is required to check release plan.");
+                return (response, null, null, string.Empty);
+            }
+
+            var releasePlan = await devopsService.GetReleasePlanAsync(workItemId);
+            if (releasePlan == null)
+            {
+                response.Details.Add($"Release plan with work item ID {workItemId} not found.");
+                return (response, null, null, string.Empty);
+            }
+
+            var sdkInfoList = releasePlan.SDKInfo;
+            if (sdkInfoList == null || sdkInfoList.Count == 0)
+            {
+                response.Details.Add("SDK details are not present in the release plan. Update the SDK details using the information in tspconfig.yaml.");
+                return (response, releasePlan, null, string.Empty);
+            }
+
+            var sdkInfo = sdkInfoList.FirstOrDefault(s => string.Equals(s.Language, language, StringComparison.OrdinalIgnoreCase));
+            if (sdkInfo == null || string.IsNullOrWhiteSpace(sdkInfo.Language))
+            {
+                response.Details.Add($"Release plan work item with ID {workItemId} does not have a language specified for {language}. Update the SDK details using the information in tspconfig.yaml.");
+                return (response, releasePlan, null, string.Empty);
+            }
+
+            if (string.IsNullOrWhiteSpace(sdkInfo.PackageName))
+            {
+                response.Details.Add($"Release plan work item with ID {workItemId} does not have a package name specified for {sdkInfo.Language}. Update the SDK details using the information in tspconfig.yaml.");
+                return (response, releasePlan, sdkInfo, string.Empty);
+            }
+
+            response.Status = "Success";
+            return (response, releasePlan, sdkInfo, sdkInfo.PackageName);
+        }
+        private async Task<GenericResponse> ValidateNamespaceApprovalStatusAsync(string typeSpecProjectRoot, int workItemId, string language, string sdkReleaseType)
+        {
+            var response = new GenericResponse()
+            {
+                Status = "Failed"
+            };
+
+            try
+            {
+                var (validationResponse, releasePlan, sdkInfo, packageName) = await ValidateReleasePlanAndGetSDKInfoAsync(workItemId, language);
+                if (validationResponse.Status != "Success")
+                {
+                    return validationResponse;
+                }
+
+                var package = await devopsService.GetPackageWorkItemAsync(packageName, language);
+
+                if (package == null)
+                {
+                    response.Details.Add($"Package with name '{packageName}' for language '{language}' does not exist.");
+                    return response;
+                }
+
+                var isMgmtPlane = typespecHelper.IsTypeSpecProjectForMgmtPlane(typeSpecProjectRoot);
+
+                var isFirstRelease = package.ReleasedVersions.Count == 0;
+
+                var isBetaRelease = sdkReleaseType?.ToLower() == "beta";
+
+                if (isMgmtPlane && isFirstRelease && isBetaRelease) // if namespace approval is required for sdk generation
+                {
+                    if (package.IsPackageNameApproved != true)
+                    {
+                        response.Status = "Failed";
+                        response.Details.Add($"Namespace approval is required for first preview release of SDK. Provide the namespace approval issue URL and link it to the release plan");
+                        return response;
+                    }
+
+                }
+                response.Status = "Success";
+                response.Details.Add($"Namespace approval check completed: either approval is not required for this SDK release, or it has already been successfully linked to the release plan.");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.Status = "Failed";
+                response.Details.Add($"Failed to validate namespace approval status for SDK generation. Error: {ex.Message}");
+                return response;
+            }
+        }
+
         private async Task<GenericResponse> IsReleasePlanReadyToGenerateSDKAsync(int workItemId, string language)
         {
             var response = new GenericResponse()
@@ -64,37 +155,12 @@ namespace Azure.Sdk.Tools.Cli.Tools
 
             try
             {
-                if (workItemId == 0)
-                {
-                    response.Details.Add("Work item ID is required to check if release plan is ready for SDK generation.");
-                    return response;
-                }
-                
-                var releasePlan = await devopsService.GetReleasePlanAsync(workItemId);
-
-                var sdkInfoList = releasePlan?.SDKInfo;
-
-                if (sdkInfoList == null || sdkInfoList.Count == 0)
-                {
-                    response.Details.Add($"SDK details are not present in the release plan.");
-                    return response;
-                }
-
-                var sdkInfo = sdkInfoList.FirstOrDefault(s => string.Equals(s.Language, language, StringComparison.OrdinalIgnoreCase));
-
-                if (sdkInfo == null || string.IsNullOrWhiteSpace(sdkInfo.Language))
-                {
-                    response.Details.Add($"Release plan work item with ID {workItemId} does not have a language specified. Update SDK details in the release plan.");
-                    return response;
-                }
-
-                if (string.IsNullOrWhiteSpace(sdkInfo.PackageName))
-                {
-                    response.Details.Add($"Release plan work item with ID {workItemId} does not have a package name specified for {sdkInfo.Language}. Update SDK details in the release plan.");
-                    return response;
-                }
-
-                response.Details.Add($"SDK info for language '{sdkInfo.Language}' and package '{sdkInfo.PackageName}' is set correctly in the release plan.");
+            var (validationResponse, releasePlan, sdkInfo, packageName) = await ValidateReleasePlanAndGetSDKInfoAsync(workItemId, language);
+            if (validationResponse.Status != "Success")
+            {
+                return validationResponse;
+            }
+                response.Details.Add($"SDK info for language '{sdkInfo?.Language}' and package '{sdkInfo?.PackageName}' is set correctly in the release plan.");
                 response.Status = "Success";
                 return response;
             }
@@ -157,6 +223,7 @@ namespace Azure.Sdk.Tools.Cli.Tools
                     response.Details.Add($"The current branch is '{DEFAULT_BRANCH}', which is not recommended for development. Please switch to a branch containing your TypeSpec project changes or create a new branch if none exists.");
                     return response;
                 }
+
 
                 // Get pull request details
                 Octokit.PullRequest? pullRequest = pullRequestNumber != 0 ? await githubService.GetPullRequestAsync(REPO_OWNER, PUBLIC_SPECS_REPO, pullRequestNumber) :
@@ -231,7 +298,7 @@ namespace Azure.Sdk.Tools.Cli.Tools
                 }
 
                 // Verify input
-                if (!TypeSpecProject.IsValidTypeSpecProjectPath(typespecProjectRoot))
+                if (!typespecHelper.IsValidTypeSpecProjectPath(typespecProjectRoot))
                 {
                     response.Details.Add($"Invalid TypeSpec project root path [{typespecProjectRoot}].");
                     response.Status = "Failed";
@@ -267,8 +334,15 @@ namespace Azure.Sdk.Tools.Cli.Tools
                     response.Status = "Failed";
                 }
 
+                var namespaceIsApproved = await ValidateNamespaceApprovalStatusAsync(typespecProjectRoot, workItemId, language, sdkReleaseType);
+                if (!namespaceIsApproved.Status.Equals("Success"))
+                {
+                    response.Details.AddRange(namespaceIsApproved.Details);
+                    response.Status = "Failed";
+                }
+
                 // Get Pull request details and check if pr is merged or not. if merged then run the pipeline against the target branch or against pr merge ref
-                var pullRequest = await githubService.GetPullRequestAsync(REPO_OWNER, PUBLIC_SPECS_REPO, pullRequestNumber);
+                    var pullRequest = await githubService.GetPullRequestAsync(REPO_OWNER, PUBLIC_SPECS_REPO, pullRequestNumber);
                 if (pullRequest == null)
                 {
                     response.Details.Add($"Failed to get pull request details for {pullRequestNumber} in {REPO_OWNER}/{PUBLIC_SPECS_REPO}");

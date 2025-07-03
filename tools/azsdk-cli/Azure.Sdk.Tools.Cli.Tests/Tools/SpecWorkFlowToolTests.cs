@@ -2,6 +2,7 @@ using Azure.Sdk.Tools.Cli.Helpers;
 using Azure.Sdk.Tools.Cli.Services;
 using Azure.Sdk.Tools.Cli.Tools;
 using Azure.Sdk.Tools.Cli.Models;
+using Azure.Sdk.Tools.Cli.Models.Responses;
 using Moq;
 
 namespace Azure.Sdk.Tools.Cli.Tests.Tools
@@ -13,11 +14,14 @@ namespace Azure.Sdk.Tools.Cli.Tests.Tools
         private Mock<IOutputService> mockOutputService;
         private SpecWorkflowTool specWorkflowTool;
 
+        private Mock<ITypeSpecHelper> mockTypeSpecHelper;
+
         [SetUp]
         public void Setup()
         {
             mockDevOpsService = new Mock<IDevOpsService>();
             mockOutputService = new Mock<IOutputService>();
+            mockTypeSpecHelper = new Mock<ITypeSpecHelper>();
 
             mockOutputService.Setup(x => x.Format(It.IsAny<GenericResponse>()))
                            .Returns((GenericResponse r) => string.Join(", ", r.Details));
@@ -140,6 +144,64 @@ namespace Azure.Sdk.Tools.Cli.Tests.Tools
             );
 
             Assert.That(result, Does.Contain("SDK details are not present in the release plan"));
+        }
+
+        [Test]
+        public async Task GenerateSDK_NamespaceApprovalRequired_NotApproved()
+        {
+
+        }
+
+        [Test]
+        public async Task GenerateSDK_NamespaceApprovalRequired_Approved()
+        {
+
+        }
+
+        [Test]
+        public async Task GenerateSDK_NamespaceApprovalNotRequired_DataPlane()
+        {
+            var releasePlan = new ReleasePlan
+            {
+                SDKInfo = new List<SDKInfo>
+                {
+                    new SDKInfo { Language = "python", PackageName = "azure-storage-test" }
+                }
+            };
+
+            var package = new PackageResponse
+            {
+                Name = "azure-storage-test",
+                Language = "python",
+                ReleasedVersions = new List<SDKReleaseInfo>(), // First release
+                PackageNameStatus = "Not approved" // Not approved, but not required for data plane
+            };
+    
+            mockDevOpsService.Setup(x => x.GetPackageWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(package);
+            mockTypeSpecHelper.Setup(x => x.IsTypeSpecProjectForMgmtPlane(It.IsAny<string>())).Returns(false);
+
+            var result = await specWorkflowTool.GenerateSDK(
+                typespecProjectRoot: "valid/path",
+                apiVersion: "2023-01-01",
+                sdkReleaseType: "beta",
+                language: "python",
+                pullRequestNumber: 123,
+                workItemId: 456
+            );
+            
+            Assert.That(result, Does.Contain("Namespace approval check completed"));
+        }
+
+        [Test]
+        public async Task GenerateSDK_NamespaceApprovalNotRequired_NotFirstRelease()
+        {
+
+        }
+
+        [Test]
+        public async Task GenerateSDK_NamespaceApprovalNotRequired_StableRelease()
+        {
+            
         }
     }
 }
