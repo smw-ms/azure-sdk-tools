@@ -19,6 +19,8 @@ This project is the primary integration point for all `azure-sdk` provided [MCP]
       * [Directory Structure](#directory-structure)
       * [Architecture Diagram](#architecture-diagram)
       * [Pipelines](#pipelines)
+   * [Common Workflows](#common-workflows)
+      * [TypeSpec SDK Generation](#typespec-sdk-generation)
    * [Design Guidelines](#design-guidelines)
    * [Adding a New Tool](#adding-a-new-tool)
    * [Data Collection](#data-collection)
@@ -325,6 +327,43 @@ graph TB
 Public CI - https://dev.azure.com/azure-sdk/public/_build?definitionId=7677
 
 Release - https://dev.azure.com/azure-sdk/internal/_build?definitionId=7684
+
+## Common Workflows
+
+### TypeSpec SDK Generation
+
+The azsdk CLI provides tools to automate TypeSpec-based SDK generation across all languages. This is particularly useful for processing SDK generation requests from azure-rest-api-specs issues.
+
+**Quick Start:**
+```bash
+# Check if an API spec is ready for SDK generation
+azsdk spec-workflow check-api-readiness \
+  --typespec-project "specification/service/TypeSpecProject" \
+  --pr <pr-number>
+
+# Generate SDK for a specific language
+azsdk spec-workflow generate-sdk \
+  --typespec-project "specification/service/TypeSpecProject" \
+  --api-version "2025-09-01" \
+  --release-type "stable" \
+  --language "python"
+```
+
+**Automation Script:**
+
+For generating SDKs across all languages at once, use the provided automation script:
+
+```bash
+./scripts/generate-sdk-from-issue.sh \
+  "specification/netapp/resource-manager/Microsoft.NetApp/NetApp" \
+  "2025-09-01" \
+  "stable" \
+  38691
+```
+
+**Documentation:**
+- [TypeSpec SDK Generation Guide](./docs/typespec-sdk-generation-guide.md) - Comprehensive guide with examples
+- [Scripts README](./scripts/README.md) - Automation scripts documentation
 
 ## Design Guidelines
 
