@@ -235,7 +235,7 @@
                             {
                                 <li class="list-group-item">
                                     <div class="form-check">
-                                    @if (Model.ReviewContent.ActiveAPIRevision.AssignedReviewers != null && Model.ReviewContent.ActiveAPIRevision.AssignedReviewers.Where(a => a.AssingedTo == approver).Any())
+                                    @if (Model.ReviewContent.ActiveAPIRevision.AssignedReviewers != null && Model.ReviewContent.ActiveAPIRevision.AssignedReviewers.Where(a => a.AssignedTo == approver).Any())
                                         {
                                             <input class="form-check-input selectReviewerForRequest" type="checkbox" name="reviewers" value="@approver" id="@(approver)CheckBox" checked>
                                             <label class="form-check-label" for="@(approver)CheckBox">

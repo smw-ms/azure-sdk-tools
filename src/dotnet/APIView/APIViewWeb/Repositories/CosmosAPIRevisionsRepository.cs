@@ -72,7 +72,7 @@ namespace APIViewWeb
 
             if (filterAndSortParams.AssignedToMe)
             {
-                queryStringBuilder.Append($" AND ARRAY_CONTAINS(c.AssignedReviewers, {{ 'AssingedTo': '{ user.GetGitHubLogin() }' }}, true)");
+                queryStringBuilder.Append($" AND ARRAY_CONTAINS(c.AssignedReviewers, {{ 'AssignedTo': '{ user.GetGitHubLogin() }' }}, true)");
             }
 
             if (filterAndSortParams.WithTreeStyleTokens)
@@ -297,7 +297,7 @@ namespace APIViewWeb
         /// <returns></returns>
         public async Task<IEnumerable<APIRevisionListItemModel>> GetAPIRevisionsAssignedToUser(string userName)
         {
-            var query = "SELECT * FROM Revisions r WHERE r.IsDeleted = false and ARRAY_CONTAINS(r.AssignedReviewers, { 'AssingedTo': '" + userName + "' }, true)";
+            var query = "SELECT * FROM Revisions r WHERE r.IsDeleted = false and ARRAY_CONTAINS(r.AssignedReviewers, { 'AssignedTo': '" + userName + "' }, true)";
 
             var apiRevisions = new List<APIRevisionListItemModel>();
             var queryDefinition = new QueryDefinition(query).WithParameter("@userName", userName);

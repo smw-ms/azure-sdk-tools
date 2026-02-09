@@ -41,8 +41,8 @@ namespace APIViewWeb.LeanModels
     public class ReviewAssignmentModel
     {
         public string AssignedBy { get; set; }
-        public string AssingedTo { get; set; }
-        public DateTime AssingedOn { get; set; }
+        public string AssignedTo { get; set; }
+        public DateTime AssignedOn { get; set; }
     }
 
     public class ReviewListModel

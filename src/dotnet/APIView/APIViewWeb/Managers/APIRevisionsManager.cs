@@ -954,13 +954,13 @@ namespace APIViewWeb.Managers
             APIRevisionListItemModel apiRevision = await _apiRevisionsRepository.GetAPIRevisionAsync(apiRevisionId);
             foreach (var reviewer in reviewers)
             {
-                if (!apiRevision.AssignedReviewers.Where(x => x.AssingedTo == reviewer).Any())
+                if (!apiRevision.AssignedReviewers.Where(x => x.AssignedTo == reviewer).Any())
                 {
                     var reviewAssignment = new ReviewAssignmentModel()
                     {
-                        AssingedTo = reviewer,
+                        AssignedTo = reviewer,
                         AssignedBy = User.GetGitHubLogin(),
-                        AssingedOn = DateTime.Now,
+                        AssignedOn = DateTime.Now,
                     };
                     apiRevision.AssignedReviewers.Add(reviewAssignment);
                 }
@@ -973,18 +973,18 @@ namespace APIViewWeb.Managers
             APIRevisionListItemModel apiRevision = await _apiRevisionsRepository.GetAPIRevisionAsync(apiRevisionId);
             foreach (var reviewer in reviewers)
             {
-                if (!apiRevision.AssignedReviewers.Where(x => x.AssingedTo == reviewer).Any())
+                if (!apiRevision.AssignedReviewers.Where(x => x.AssignedTo == reviewer).Any())
                 {
                     var reviewAssignment = new ReviewAssignmentModel()
                     {
-                        AssingedTo = reviewer,
+                        AssignedTo = reviewer,
                         AssignedBy = User.GetGitHubLogin(),
-                        AssingedOn = DateTime.Now,
+                        AssignedOn = DateTime.Now,
                     };
                     apiRevision.AssignedReviewers.Add(reviewAssignment);
                 }
             }
-            foreach (var assignment in apiRevision.AssignedReviewers.FindAll(x => !reviewers.Contains(x.AssingedTo)))
+            foreach (var assignment in apiRevision.AssignedReviewers.FindAll(x => !reviewers.Contains(x.AssignedTo)))
             {
                 apiRevision.AssignedReviewers.Remove(assignment);
             }

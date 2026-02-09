@@ -191,9 +191,9 @@ namespace APIViewWeb.Pages.Assemblies
             // Group revisions by ReviewId and track the latest one for namespace approval
             var latestRevisionsForNamespaceReviews = new Dictionary<string, APIRevisionListItemModel>();
 
-            foreach (var apiRevision in APIRevisions.OrderByDescending(r => r.AssignedReviewers.Any() ? r.AssignedReviewers.Where(x => x.AssingedTo.Equals(userId)).FirstOrDefault()?.AssingedOn ?? r.CreatedOn : r.CreatedOn))
+            foreach (var apiRevision in APIRevisions.OrderByDescending(r => r.AssignedReviewers.Any() ? r.AssignedReviewers.Where(x => x.AssignedTo.Equals(userId)).FirstOrDefault()?.AssignedOn ?? r.CreatedOn : r.CreatedOn))
             {
-                bool isAssignedToUser = apiRevision.AssignedReviewers.Any(x => x.AssingedTo.Equals(userId));
+                bool isAssignedToUser = apiRevision.AssignedReviewers.Any(x => x.AssignedTo.Equals(userId));
                 
                 if (isAssignedToUser)
                 {
