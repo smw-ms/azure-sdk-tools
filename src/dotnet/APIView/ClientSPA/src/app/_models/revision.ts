@@ -60,8 +60,8 @@ export class APIRevision {
 
 export interface AssignedReviewer {
   assignedBy: string;
-  assingedTo: string;
-  assingedOn: string;
+  assignedTo: string;
+  assignedOn: string;
 }
 
 export interface DiffLineInProcess {

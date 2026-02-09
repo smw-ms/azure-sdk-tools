@@ -133,7 +133,7 @@ export class ReviewPageOptionsComponent implements OnInit, OnChanges {
     private permissionsService: PermissionsService) { }
 
   async ngOnInit() {
-    this.activeAPIRevision?.assignedReviewers.map(revision => this.selectedApprovers.push(revision.assingedTo));
+    this.activeAPIRevision?.assignedReviewers.map(revision => this.selectedApprovers.push(revision.assignedTo));
 
     // Load EnableNamespaceReview feature flag from Azure App Configuration
     this.reviewsService.getEnableNamespaceReview().pipe(take(1)).subscribe({
@@ -176,7 +176,7 @@ export class ReviewPageOptionsComponent implements OnInit, OnChanges {
     }
 
     if (changes['activeAPIRevision'] && changes['activeAPIRevision'].currentValue != undefined) {
-      this.selectedApprovers = this.activeAPIRevision!.assignedReviewers.map(reviewer => reviewer.assingedTo);
+      this.selectedApprovers = this.activeAPIRevision!.assignedReviewers.map(reviewer => reviewer.assignedTo);
       this.isCopilotReviewSupported = this.isCopilotReviewSupportedForPackage();
       this.setAPIRevisionApprovalStates();
       this.setPullRequestsInfo();
@@ -276,7 +276,7 @@ export class ReviewPageOptionsComponent implements OnInit, OnChanges {
   }
 
   handleAssignedReviewersChange() {
-    const existingApprovers = new Set(this.activeAPIRevision!.assignedReviewers.map(reviewer => reviewer.assingedTo));
+    const existingApprovers = new Set(this.activeAPIRevision!.assignedReviewers.map(reviewer => reviewer.assignedTo));
     const currentApprovers = new Set(this.selectedApprovers);
     const isSelectedApproversChanged = existingApprovers.size !== currentApprovers.size ||
                       [...existingApprovers].some(approver => !currentApprovers.has(approver));
